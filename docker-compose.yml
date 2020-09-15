@@ -1,0 +1,69 @@
+version: "3"
+
+networks: 
+  lnmp_net:
+    driver: bridge
+
+services: 
+## php fpm #######
+  php-fpm:
+    build:
+      context: ./services/php-fpm
+    ports: 
+      - "9000:9000"
+    container_name: lnmp-php-fpm
+    restart: always
+    volumes: 
+      - ./sites:/var/www
+    networks: 
+      - lnmp_net
+
+## nginx #######
+  nginx:
+    build: 
+      context: ./services/nginx
+    ports: 
+      - "80:80"
+      - "443:443"
+    container_name: lnmp-nginx
+    restart: always
+    volumes: 
+      - ./sites:/www
+      - ./services/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - php-fpm
+    networks: 
+      - lnmp_net
+
+## phpmyadmin #######
+  phpmyadmin:
+    build: 
+      context: ./services/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - MYSQL_USER=demo
+      - MYSQL_PASSWORD=123456
+      - MYSQL_ROOT_PASSWORD=123qwe!@#
+    ports: 
+      - "8081:80"
+    depends_on:
+      - mariadb
+    networks: 
+      - lnmp_net
+
+## mariadb #######
+  mariadb:
+    build: 
+      context: ./services/mariadb
+    ports: 
+      - "3306:3306"
+    container_name: lnmp-mariadb
+    restart: always
+    volumes: 
+      - ./docker/data/mariadb:/var/lib/mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: 123qwe!@#
+      MYSQL_USER: demo
+      MYSQL_PASSWORD: 123456
+    networks: 
+      - lnmp_net
